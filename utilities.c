@@ -7,7 +7,7 @@
 // global constants
 const char *prefix_title = ":RT:--    ";
 const char *prefix_body = ":-----       ";
-const char *plane_key[6] = {"NEAR","LEFT","RIGHT","BOTTOM","TOP"}; 
+const char *plane_key[6] = {"NEAR", "LEFT", "RIGHT", "BOTTOM", "TOP"};
 const char *res_key = "RES";
 const char *sphere_key = "SPHERE";
 const char *light_key = "LIGHT";
@@ -16,39 +16,40 @@ const char *ambient_key = "AMBIENT";
 const char *output_key = "OUTPUT";
 
 // structs
-struct Sphere {
-    char name[20+1];
-    float position[3];
-    float scale[3];
-    float color[3];
-    float whatever[4];
-    int specular_exponent; 
+
+struct Vec3
+{
+    float x;
+    float y;
+    float z;
 };
 
-struct Light {
-    char name[20+1];
-    float position[3];
-    float intensity[3];
+struct Ray
+{
+    struct Vec3 point;
+    struct Vec3 direction;
 };
 
-void druck(char *string){
+void druck(char *string)
+{
     char *prefix_title = ":RT:--    ";
     printf("%s%s\n", prefix_title, string);
 }
 
-
-int processFile(char *filename){
-    FILE* file;
+struct Data processFile(char *filename)
+{
+    FILE *file;
     int i;
 
     file = fopen(filename, "r");
 
-    if (NULL == file) {
+    if (!file)
+    {
         printf("%sProblem with file [%s], cannot be opened.\n", prefix_title, filename);
         exit(0);
     }
 
-    printf("%sFile Contents:\n",prefix_title);
+    printf("%sFile Contents:\n", prefix_title);
 
     char *line = NULL;
     size_t len = 0;
@@ -57,99 +58,161 @@ int processFile(char *filename){
     const char space[2] = " ";
     const char newline[2] = "\n";
 
-    float planes[5];
-    int res[2];
-    struct Sphere spheres[15];
-    int numSpheres = 0;
-    struct Light lights[10];
-    int numLights = 0;
-    float background_color[3]; // [r,g,b] each between 0,1
-    float ambient[3];
-    char *out_filename;
+    struct Data data;
 
+    int numSpheres = 0;
+    int numLights = 0;
     int key_found;
 
-    while (getline(&line, &len, file) != -1) {
+    while (getline(&line, &len, file) != -1)
+    {
         key_found = 0;
 
         token = strtok(line, space);
 
-        for(i=0;i<5;i++){
-            if(!key_found && !strcmp(token,plane_key[i])){
-                planes[i] = atof(strtok(NULL, newline));
+        for (i = 0; i < 5; i++)
+        {
+            if (!key_found && !strcmp(token, plane_key[i]))
+            {
+                data.planes[i] = atof(strtok(NULL, newline));
                 key_found = 1;
-            } 
+            }
         }
-        if(!key_found && !strcmp(token,res_key)){
-            res[0] = atoi(strtok(NULL, space));
-            res[1] = atoi(strtok(NULL, space));
+        if (!key_found && !strcmp(token, res_key))
+        {
+            data.res[0] = atoi(strtok(NULL, space));
+            data.res[1] = atoi(strtok(NULL, space));
             key_found = 1;
         }
-        else if(!key_found && !strcmp(token,sphere_key)){ 
+        else if (!key_found && !strcmp(token, sphere_key))
+        {
             token = strtok(NULL, space);
-            strcpy(spheres[numSpheres].name, strdup(token));
-            spheres[numSpheres].position[0] = atof(strtok(NULL, space));
-            spheres[numSpheres].position[1] = atof(strtok(NULL, space));
-            spheres[numSpheres].position[2] = atof(strtok(NULL, space));
-            spheres[numSpheres].scale[0] = atof(strtok(NULL, space));
-            spheres[numSpheres].scale[1] = atof(strtok(NULL, space));
-            spheres[numSpheres].scale[2] = atof(strtok(NULL, space));
-            spheres[numSpheres].color[0] = atof(strtok(NULL, space));
-            spheres[numSpheres].color[1] = atof(strtok(NULL, space));
-            spheres[numSpheres].color[2] = atof(strtok(NULL, space));
-            spheres[numSpheres].whatever[0] = atof(strtok(NULL, space));
-            spheres[numSpheres].whatever[1] = atof(strtok(NULL, space));
-            spheres[numSpheres].whatever[2] = atof(strtok(NULL, space));
-            spheres[numSpheres].whatever[3] = atof(strtok(NULL, space));
-            spheres[numSpheres].specular_exponent = atoi(strtok(NULL, space));
+            strcpy(data.spheres[numSpheres].name, strdup(token));
+            data.spheres[numSpheres].position[0] = atof(strtok(NULL, space));
+            data.spheres[numSpheres].position[1] = atof(strtok(NULL, space));
+            data.spheres[numSpheres].position[2] = atof(strtok(NULL, space));
+            data.spheres[numSpheres].scale[0] = atof(strtok(NULL, space));
+            data.spheres[numSpheres].scale[1] = atof(strtok(NULL, space));
+            data.spheres[numSpheres].scale[2] = atof(strtok(NULL, space));
+            data.spheres[numSpheres].color[0] = atof(strtok(NULL, space));
+            data.spheres[numSpheres].color[1] = atof(strtok(NULL, space));
+            data.spheres[numSpheres].color[2] = atof(strtok(NULL, space));
+            data.spheres[numSpheres].whatever[0] = atof(strtok(NULL, space));
+            data.spheres[numSpheres].whatever[1] = atof(strtok(NULL, space));
+            data.spheres[numSpheres].whatever[2] = atof(strtok(NULL, space));
+            data.spheres[numSpheres].whatever[3] = atof(strtok(NULL, space));
+            data.spheres[numSpheres].specular_exponent = atoi(strtok(NULL, space));
 
             numSpheres++;
             key_found = 1;
         }
-        else if(!key_found && !strcmp(token,light_key)){
+        else if (!key_found && !strcmp(token, light_key))
+        {
             token = strtok(NULL, space);
-            strcpy(lights[numLights].name, strdup(token));
-            lights[numLights].position[0] = atof(strtok(NULL,space));
-            lights[numLights].position[1] = atof(strtok(NULL,space));
-            lights[numLights].position[2] = atof(strtok(NULL,space));
-            lights[numLights].intensity[0] = atof(strtok(NULL,space));
-            lights[numLights].intensity[1] = atof(strtok(NULL,space));
-            lights[numLights].intensity[2] = atof(strtok(NULL,space));
+            strcpy(data.lights[numLights].name, strdup(token));
+            data.lights[numLights].position[0] = atof(strtok(NULL, space));
+            data.lights[numLights].position[1] = atof(strtok(NULL, space));
+            data.lights[numLights].position[2] = atof(strtok(NULL, space));
+            data.lights[numLights].intensity[0] = atof(strtok(NULL, space));
+            data.lights[numLights].intensity[1] = atof(strtok(NULL, space));
+            data.lights[numLights].intensity[2] = atof(strtok(NULL, space));
 
             numLights++;
             key_found = 1;
         }
-        else if(!key_found && !strcmp(token,background_key)){
-            background_color[0] = atof(strtok(NULL, space));
-            background_color[1] = atof(strtok(NULL, space));
-            background_color[2] = atof(strtok(NULL, space));
+        else if (!key_found && !strcmp(token, background_key))
+        {
+            data.background_color[0] = atof(strtok(NULL, space));
+            data.background_color[1] = atof(strtok(NULL, space));
+            data.background_color[2] = atof(strtok(NULL, space));
             key_found = 1;
         }
-        else if(!key_found && !strcmp(token,ambient_key)){
-            ambient[0] = atof(strtok(NULL, space));
-            ambient[1] = atof(strtok(NULL, space));
-            ambient[2] = atof(strtok(NULL, space));
+        else if (!key_found && !strcmp(token, ambient_key))
+        {
+            data.ambient[0] = atof(strtok(NULL, space));
+            data.ambient[1] = atof(strtok(NULL, space));
+            data.ambient[2] = atof(strtok(NULL, space));
             key_found = 1;
         }
-        else if(!key_found && !strcmp(token,output_key)){ // to process string
+        else if (!key_found && !strcmp(token, output_key))
+        {
             token = strtok(NULL, newline);
-            out_filename = strdup(token);
+            data.out_filename = strdup(token);
             key_found = 1;
         }
     }
 
     printf("%sVariables processed from file: \n", prefix_title);
-    printf("%sPlanes:       -%.1f- -%.1f- -%.1f- -%.1f- -%.1f-\n",prefix_body, planes[0],planes[1],planes[2],planes[3],planes[4]);
-    printf("%sResolution:   -%d- -%d-\n",prefix_body, res[0], res[1]);
-    for(i=0;i<numSpheres;i++){
-        printf("%sSphere:       -%s- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%i-\n",prefix_body, spheres[i].name, spheres[i].position[0], spheres[i].position[1], spheres[i].position[2], spheres[i].scale[0], spheres[i].scale[1], spheres[i].scale[2], spheres[i].color[0], spheres[i].color[1], spheres[i].color[2], spheres[i].whatever[0], spheres[i].whatever[1], spheres[i].whatever[2], spheres[i].whatever[3], spheres[i].specular_exponent);
+    printf("%sPlanes:       -%.1f- -%.1f- -%.1f- -%.1f- -%.1f-\n", prefix_body, data.planes[0], data.planes[1], data.planes[2], data.planes[3], data.planes[4]);
+    printf("%sResolution:   -%d- -%d-\n", prefix_body, data.res[0], data.res[1]);
+    for (i = 0; i < numSpheres; i++)
+    {
+        printf("%sSphere:       -%s- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%i-\n", prefix_body, data.spheres[i].name, data.spheres[i].position[0], data.spheres[i].position[1], data.spheres[i].position[2], data.spheres[i].scale[0], data.spheres[i].scale[1], data.spheres[i].scale[2], data.spheres[i].color[0], data.spheres[i].color[1], data.spheres[i].color[2], data.spheres[i].whatever[0], data.spheres[i].whatever[1], data.spheres[i].whatever[2], data.spheres[i].whatever[3], data.spheres[i].specular_exponent);
     }
-    for(i=0;i<numLights;i++){
-        printf("%sLight:        -%s- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f-\n",prefix_body, lights[i].name, lights[i].position[0], lights[i].position[1], lights[i].position[2], lights[i].intensity[0], lights[i].intensity[1], lights[i].intensity[2]);
+    for (i = 0; i < numLights; i++)
+    {
+        printf("%sLight:        -%s- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f-\n", prefix_body, data.lights[i].name, data.lights[i].position[0], data.lights[i].position[1], data.lights[i].position[2], data.lights[i].intensity[0], data.lights[i].intensity[1], data.lights[i].intensity[2]);
     }
-    printf("%sBackground:   -%.1f- -%.1f- -%.1f-\n",prefix_body, background_color[0], background_color[1], background_color[2]);
-    printf("%sAmbient:      -%.1f- -%.1f- -%.1f-\n",prefix_body, ambient[0], ambient[1], ambient[2]);
-    printf("%sOutput File:  -%s-\n",prefix_body, out_filename);
+    printf("%sBackground:   -%.1f- -%.1f- -%.1f-\n", prefix_body, data.background_color[0], data.background_color[1], data.background_color[2]);
+    printf("%sAmbient:      -%.1f- -%.1f- -%.1f-\n", prefix_body, data.ambient[0], data.ambient[1], data.ambient[2]);
+    printf("%sOutput File:  -%s-\n", prefix_body, data.out_filename);
 
     fclose(file);
+
+    return data;
+}
+
+void generate_background(int *pixels, int width, int height, int r, int g, int b)
+{
+    printf("%sGenerating Background Color: [%d,%d,%d]\n", prefix_title, r, g, b);
+
+    float scale = 128.0 / 200.0;
+    int k = 0;
+    for (int i = 0; i < 200; i++)
+    {
+        for (int j = 0; j < 200; j++)
+        {
+            pixels[k] = r;
+            pixels[k + 1] = g;
+            pixels[k + 2] = b;
+            k = k + 3;
+        }
+    }
+
+    printf("%sDone generating background\n", prefix_title);
+}
+
+int save_image(int width, int height, char *filename, int *pixels)
+{
+    FILE *out_file;
+
+    int i, j;
+
+    printf("Saving image [%s]: %d x %d\n", filename, width, height);
+
+    out_file = fopen(filename, "w");
+    if (!out_file)
+    {
+        printf("%sProblem with file [%s], cannot be opened.\n", prefix_title, filename);
+        exit(1);
+    }
+
+    fprintf(out_file, "P3\n");
+    fprintf(out_file, "%i %i\n", width, height);
+    fprintf(out_file, "255\n");
+    int k = 0;
+
+    for (i = 0; i < height; i++)
+    {
+        for (j = 0; j < width; j++)
+        {
+            fprintf(out_file, " %d %d %d\n", pixels[k], pixels[k + 1], pixels[k + 2]);
+        }
+        fprintf(out_file, "\n");
+    }
+    fclose(out_file);
+}
+
+int draw_sphere(struct Vec3 center, float radius)
+{
 }
