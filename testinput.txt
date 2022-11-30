@@ -1,0 +1,22 @@
+NEAR 3.3
+
+LEFT 4.0
+
+RIGHT 6.6
+
+BOTTOM 8.0
+
+TOP 199.09
+
+RES 90 1440
+
+SPHERE testsphere 7 8 9 1 1 1 0.3 0.3 0.3 0.1 0.2 0.3 0.4 5
+SPHERE testsphere 7 8 9 1 1 1 0.3 0.3 0.3 0.1 0.2 0.3 0.4 7
+
+LIGHT testlight 0.1 0.2 0.3 0.4 0.5 0.6
+
+BACK 0.3 0.4 1
+
+AMBIENT 0.9 0.9 0.6
+
+OUTPUT testoutput
