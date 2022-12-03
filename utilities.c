@@ -1,10 +1,12 @@
-#include "header.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
-// global constants
+#include "vec.h"
+#include "header.h"
+
+// Global Constants
 const char *prefix_title = ":RT:--    ";
 const char *prefix_body = ":-----       ";
 const char *plane_key[6] = {"NEAR", "LEFT", "RIGHT", "BOTTOM", "TOP"};
@@ -15,27 +17,25 @@ const char *background_key = "BACK";
 const char *ambient_key = "AMBIENT";
 const char *output_key = "OUTPUT";
 
-// structs
-
-struct Vec3
-{
-    float x;
-    float y;
-    float z;
-};
-
-struct Ray
-{
-    struct Vec3 point;
-    struct Vec3 direction;
-};
-
+// Helper Functions
 void druck(char *string)
 {
     char *prefix_title = ":RT:--    ";
     printf("%s%s\n", prefix_title, string);
 }
 
+char *strdup(const char *str)
+{
+    int n = strlen(str) + 1;
+    char *dup = malloc(n);
+    if (dup)
+    {
+        strcpy(dup, str);
+    }
+    return dup;
+}
+
+// Main Functions
 struct Data processFile(char *filename)
 {
     FILE *file;
@@ -49,10 +49,8 @@ struct Data processFile(char *filename)
         exit(0);
     }
 
-    printf("%sFile Contents:\n", prefix_title);
-
-    char *line = NULL;
-    size_t len = 0;
+    const int len = 100;
+    char line[len];
 
     char *token;
     const char space[2] = " ";
@@ -64,7 +62,7 @@ struct Data processFile(char *filename)
     int numLights = 0;
     int key_found;
 
-    while (getline(&line, &len, file) != -1)
+    while (fgets(line, len, file))
     {
         key_found = 0;
 
@@ -88,15 +86,15 @@ struct Data processFile(char *filename)
         {
             token = strtok(NULL, space);
             strcpy(data.spheres[numSpheres].name, strdup(token));
-            data.spheres[numSpheres].position[0] = atof(strtok(NULL, space));
-            data.spheres[numSpheres].position[1] = atof(strtok(NULL, space));
-            data.spheres[numSpheres].position[2] = atof(strtok(NULL, space));
-            data.spheres[numSpheres].scale[0] = atof(strtok(NULL, space));
-            data.spheres[numSpheres].scale[1] = atof(strtok(NULL, space));
-            data.spheres[numSpheres].scale[2] = atof(strtok(NULL, space));
-            data.spheres[numSpheres].color[0] = atof(strtok(NULL, space));
-            data.spheres[numSpheres].color[1] = atof(strtok(NULL, space));
-            data.spheres[numSpheres].color[2] = atof(strtok(NULL, space));
+            data.spheres[numSpheres].position.x = atof(strtok(NULL, space));
+            data.spheres[numSpheres].position.y = atof(strtok(NULL, space));
+            data.spheres[numSpheres].position.z = atof(strtok(NULL, space));
+            data.spheres[numSpheres].scale.x = atof(strtok(NULL, space));
+            data.spheres[numSpheres].scale.y = atof(strtok(NULL, space));
+            data.spheres[numSpheres].scale.z = atof(strtok(NULL, space));
+            data.spheres[numSpheres].color.x = atof(strtok(NULL, space));
+            data.spheres[numSpheres].color.y = atof(strtok(NULL, space));
+            data.spheres[numSpheres].color.z = atof(strtok(NULL, space));
             data.spheres[numSpheres].whatever[0] = atof(strtok(NULL, space));
             data.spheres[numSpheres].whatever[1] = atof(strtok(NULL, space));
             data.spheres[numSpheres].whatever[2] = atof(strtok(NULL, space));
@@ -142,12 +140,15 @@ struct Data processFile(char *filename)
         }
     }
 
+    data.numSpheres = numSpheres;
+    data.numLights = numLights;
+
     printf("%sVariables processed from file: \n", prefix_title);
     printf("%sPlanes:       -%.1f- -%.1f- -%.1f- -%.1f- -%.1f-\n", prefix_body, data.planes[0], data.planes[1], data.planes[2], data.planes[3], data.planes[4]);
     printf("%sResolution:   -%d- -%d-\n", prefix_body, data.res[0], data.res[1]);
     for (i = 0; i < numSpheres; i++)
     {
-        printf("%sSphere:       -%s- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%i-\n", prefix_body, data.spheres[i].name, data.spheres[i].position[0], data.spheres[i].position[1], data.spheres[i].position[2], data.spheres[i].scale[0], data.spheres[i].scale[1], data.spheres[i].scale[2], data.spheres[i].color[0], data.spheres[i].color[1], data.spheres[i].color[2], data.spheres[i].whatever[0], data.spheres[i].whatever[1], data.spheres[i].whatever[2], data.spheres[i].whatever[3], data.spheres[i].specular_exponent);
+        printf("%sSphere:       -%s- -%s- -%s- -%s- -%.1f- -%.1f- -%.1f- -%.1f- -%i-\n", prefix_body, data.spheres[i].name, vec3_tostring(data.spheres[i].position), vec3_tostring(data.spheres[i].scale), vec3_tostring(data.spheres[i].color), data.spheres[i].whatever[0], data.spheres[i].whatever[1], data.spheres[i].whatever[2], data.spheres[i].whatever[3], data.spheres[i].specular_exponent);
     }
     for (i = 0; i < numLights; i++)
     {
@@ -162,57 +163,125 @@ struct Data processFile(char *filename)
     return data;
 }
 
-void generate_background(int *pixels, int width, int height, int r, int g, int b)
-{
-    printf("%sGenerating Background Color: [%d,%d,%d]\n", prefix_title, r, g, b);
+// void generate_background(int width, int height, int r, int g, int b)
+// {
+//     printf("%sGenerating Background Color: [%d,%d,%d]\n", prefix_title, r, g, b);
 
-    float scale = 128.0 / 200.0;
-    int k = 0;
-    for (int i = 0; i < 200; i++)
+//     float scale = 128.0 / 200.0;
+//     int k = 0;
+//     for (int i = 0; i < 200; i++)
+//     {
+//         for (int j = 0; j < 200; j++)
+//         {
+//             pixels[k] = r;
+//             pixels[k + 1] = g;
+//             pixels[k + 2] = b;
+//             k = k + 3;
+//         }
+//     }
+
+//     printf("%sDone generating background\n", prefix_title);
+// }
+
+// int save_image(int image_width, int image_height, float view_width, float view_height, float near_plane, char *filename)
+// {
+//     FILE *out_file;
+
+//     int i, j;
+
+//     printf("%sSaving image [%s]: %d x %d px\n", prefix_title, filename, image_width, image_height);
+
+//     out_file = fopen(filename, "w");
+//     if (!out_file)
+//     {
+//         printf("%sProblem with file [%s], cannot be opened.\n", prefix_body, filename);
+//         exit(1);
+//     }
+
+//     fprintf(out_file, "P3\n");
+//     fprintf(out_file, "%i %i\n", image_width, image_height);
+//     fprintf(out_file, "255\n");
+
+//     printf("%sRows generated: ", prefix_body);
+//     printf("%3i %c", 0, 37);
+
+//     for (i = image_height - 1; i >= 0; --i)
+//     {
+//         for (j = 0; j < image_width; ++j)
+//         {
+//             float u = -1.0 * (view_width / 2) + ((view_width / 2) * (2 * j) / image_width);
+//             float v = -1.0 * (view_height / 2) + ((view_height / 2) * (2 * i) / image_height);
+//             struct Ray eye;
+//             eye.point = pointh_new(0.0, 0.0, 0.0);
+//             eye.vector = vech_new(u, v, -1.0);
+
+//             struct Vec3 pixel_color = ray_color(eye);
+//             fprintf(out_file, " %d %d %d\n", color_transform(pixel_color.x, 255), color_transform(pixel_color.y, 255), color_transform(pixel_color.z, 255));
+//         }
+//         fprintf(out_file, "\n");
+
+//         // Completion Percentage Generation (stdout)
+//         printf("\b\b\b\b\b");
+//         printf("%3i %c", ((i + 1) / image_height * 100), 37);
+//         fflush(stdout);
+//     }
+//     fclose(out_file);
+
+//     printf("\n");
+//     printf("%sImage Saved [%s]:\n", prefix_title, filename);
+// }
+
+float sphere_intersection_v(struct Ray ray, int verbose)
+{
+    struct VecH v = ray.vector;
+    struct VecH P = ray.point;
+    float A = vech_dot(v, v);
+    float B = vech_dot(P, v);
+    float C = vech_dot(P, P) - 1;
+    float dis = (B * B) - (A * C);
+
+    if (verbose == 1)
     {
-        for (int j = 0; j < 200; j++)
+        printf("A: %.2f \n", A);
+        printf("B: %.2f \n", B);
+        printf("C: %.2f \n", C);
+        printf("dis: %.2f \n", dis);
+    }
+    return dis;
+}
+
+struct Vec3 ray_color(struct Ray ray, struct Sphere *spheres, int numSpheres)
+{
+    int i;
+    for (i = 0; i < numSpheres; i++)
+    {
+        struct Vec3 translate = spheres[i].position;
+        struct Vec3 scale = spheres[i].scale;
+
+        struct Ray rayT = ray_translate_i(ray, translate);
+        struct Ray rayS = ray_scale_i(rayT, scale);
+
+        float t = sphere_intersection_v(rayS, 0);
+
+        if (t >= 0.0)
         {
-            pixels[k] = r;
-            pixels[k + 1] = g;
-            pixels[k + 2] = b;
-            k = k + 3;
+            return spheres[i].color;
         }
     }
 
-    printf("%sDone generating background\n", prefix_title);
+    struct Vec3 white = vec3_new(1.0, 1.0, 1.0);
+
+    return white;
 }
 
-int save_image(int width, int height, char *filename, int *pixels)
-{
-    FILE *out_file;
+// printf("t value: %.2f\n", t);
+//  struct VecH n = pointh_subpoint(ray_at(ray, t), pointh_new(0.0, 0.0, -1.0));
+//  return vec3_multscalar(vec3_addscalar(vec3_new(n.x, n.y, n.z), 1), 0.5);
 
-    int i, j;
-
-    printf("Saving image [%s]: %d x %d\n", filename, width, height);
-
-    out_file = fopen(filename, "w");
-    if (!out_file)
-    {
-        printf("%sProblem with file [%s], cannot be opened.\n", prefix_title, filename);
-        exit(1);
-    }
-
-    fprintf(out_file, "P3\n");
-    fprintf(out_file, "%i %i\n", width, height);
-    fprintf(out_file, "255\n");
-    int k = 0;
-
-    for (i = 0; i < height; i++)
-    {
-        for (j = 0; j < width; j++)
-        {
-            fprintf(out_file, " %d %d %d\n", pixels[k], pixels[k + 1], pixels[k + 2]);
-        }
-        fprintf(out_file, "\n");
-    }
-    fclose(out_file);
-}
-
-int draw_sphere(struct Vec3 center, float radius)
-{
-}
+// struct Vec3 blue = vec3_new(0.5, 0.7, 1.0);
+// struct Vec3 purple = vec3_new(0.5, 0.0, 0.5);
+// struct Vec3 green = vec3_new(0.0, 1.0, 0.0);
+// struct VecH unit = vech_unit(ray.vector);
+// float t = 0.5 * (unit.y + 1.0);
+// printf("t value: %.2f\n", t);
+// return vec3_addvec(vec3_multscalar(white, (1.0 - t)), vec3_multscalar(blue, t));

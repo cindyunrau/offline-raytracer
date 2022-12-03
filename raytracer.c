@@ -3,7 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
+#include "vec.h"
 #include "header.h"
 
 int main(int argc, char *argv[])
@@ -24,15 +26,65 @@ int main(int argc, char *argv[])
     struct Data data;
     data = processFile(filename);
 
-    // int width = data.res[0];  // nCols
-    // int height = data.res[1]; // nRows
+    const int image_width = data.res[0];
+    const int image_height = data.res[1];
+    float view_height = abs(data.planes[3]) + abs(data.planes[4]);
+    float view_width = abs(data.planes[1]) + abs(data.planes[2]);
+    float near = data.planes[0];
 
-    // int numPixels = width * height * 3;
-    int pixels[400 * 400 * 3] = {0};
-    // memset(pixels, 0, width * height * 3 * sizeof(int));
-    generate_background(pixels, 400, 400, 255, 0, 0);
+    struct VecH eye = pointh_new(0.0, 0.0, 2.0);
 
-    save_image(400, 400, "testoutput.ppm", pixels);
+    FILE *out_file;
+
+    int i, j;
+
+    printf("%sSaving image [%s]: %d x %d px\n", prefix_title, data.out_filename, image_width, image_height);
+
+    out_file = fopen(data.out_filename, "w");
+    if (!out_file)
+    {
+        printf("%sProblem with file [%s], cannot be opened.\n", prefix_body, data.out_filename);
+        exit(1);
+    }
+
+    fprintf(out_file, "P3\n");
+    fprintf(out_file, "%i %i\n", image_width, image_height);
+
+    fprintf(out_file, "255\n");
+
+    printf("%sRows generated: ", prefix_body);
+    printf("[                    ] ");
+    printf("%3i %c", 0, 37);
+
+    for (i = image_height - 1; i >= 0; --i)
+    {
+        for (j = 0; j < image_width; ++j)
+        {
+            float u = -1.0 * (view_width / 2) + ((view_width / 2) * (2 * j) / image_width);
+            float v = -1.0 * (view_height / 2) + ((view_height / 2) * (2 * i) / image_height);
+
+            struct Ray ray;
+            ray.point = pointh_new(0.0, 0.0, 0.0);
+            ray.vector = vech_new(u, v, -1.0 * near);
+
+            struct Vec3 pixel_color = ray_color(ray, data.spheres, data.numSpheres);
+            fprintf(out_file, " %d %d %d\n", color_transform(pixel_color.x, 255), color_transform(pixel_color.y, 255), color_transform(pixel_color.z, 255));
+        }
+        fprintf(out_file, "\n");
+
+        // Progress Bar
+        printf("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b");
+        int completion = (((float)image_height - (float)i) / (float)image_height) * 100.0;
+        printf("[%.*s", completion / 5, "####################");
+        printf("%.*s] ", 20 - completion / 5, "                    ");
+        printf("%3i %c", completion, 37);
+
+        fflush(stdout);
+    }
+    fclose(out_file);
+
+    printf("\n");
+    printf("%sImage Saved [%s]:\n", prefix_title, data.out_filename);
 
     return 0;
 }
