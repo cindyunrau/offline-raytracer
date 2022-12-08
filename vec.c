@@ -78,7 +78,7 @@ struct Vec3 vec3_multscalar(struct Vec3 vector, float scalar)
 struct Vec3 vec3_unit(struct Vec3 vector)
 {
     struct Vec3 result;
-    float length = (float)vec3_len(vector);
+    float length = vec3_len(vector);
 
     result.x = vector.x / length;
     result.y = vector.y / length;
@@ -188,9 +188,17 @@ struct VecH vech_addvec(struct VecH vector1, struct VecH vector2)
     result.x = vector1.x + vector2.x;
     result.y = vector1.y + vector2.y;
     result.z = vector1.z + vector2.z;
-    result.homo = 0;
+    result.homo = vector1.homo;
 
     return result;
+}
+
+// VecH setter for homogeneous points
+void vec3_addvec_s(struct Vec3 *vec1, struct Vec3 vec2)
+{
+    vec1->x += vec2.x;
+    vec1->y += vec2.y;
+    vec1->z += vec2.z;
 }
 
 // Adds homogeneous point and homogeneous vector
@@ -217,6 +225,11 @@ struct VecH vech_subvec(struct VecH vector1, struct VecH vector2)
     result.homo = 0;
 
     return result;
+}
+
+float pointh_distpoint(struct VecH point1, struct VecH point2)
+{
+    return sqrt(pow(point1.x - point2.x, 2) + pow(point1.y - point2.y, 2) + pow(point1.z - point2.z, 2));
 }
 
 // Subtracts two homogeneous points
@@ -308,6 +321,10 @@ char *color_tostring(struct Vec3 color)
 // Converts colour float values [0,1] to int values [0,maxVal]
 int color_transform(float color_val, int maxVal)
 {
+    if (color_val > 1.0)
+    {
+        color_val = 1.0;
+    }
     int color = color_val * maxVal;
 
     return color;
@@ -366,6 +383,7 @@ struct Vec3 translate_inverse(struct Vec3 vector)
 }
 
 // Multiply the vector/point by the scale matrix
+// Not necessary to multiply whole matrix since many values = 0
 struct VecH vech_scale(struct VecH vector, struct Vec3 scale)
 {
     struct VecH result;
@@ -396,6 +414,7 @@ struct Ray ray_scale_i(struct Ray ray, struct Vec3 scale)
 }
 
 // Multiply the vector/point by the translation matrix
+// Not necessary to multiply whole matrix since many values = 0
 struct VecH vech_translate(struct VecH vector, struct Vec3 translate)
 {
     struct VecH result;
@@ -423,4 +442,43 @@ struct Ray ray_translate(struct Ray ray, struct Vec3 translate)
 struct Ray ray_translate_i(struct Ray ray, struct Vec3 translate)
 {
     return ray_translate(ray, translate_inverse(translate));
+}
+
+struct Ray ray_ts_i(struct Ray ray, struct Vec3 translate, struct Vec3 scale)
+{
+    return ray_scale_i(ray_translate_i(ray, translate), scale);
+}
+
+// struct VecH test(struct VecH vector, struct Vec3 translate, struct Vec3 scale)
+// {
+//     struct VecH result;
+
+//     result.x = ((vector.homo * -1 * translate.x / scale.x) + (vector.x * 1 / scale.x));
+//     result.y = ((vector.homo * -1 * translate.y / scale.y) + (vector.y * 1 / scale.y));
+//     result.z = ((vector.homo * -1 * translate.z / scale.z) + (vector.z * 1 / scale.z));
+//     result.homo = vector.homo;
+
+//     return result;
+// }
+
+// struct Ray ray_ts_i(struct Ray ray, struct Vec3 translate, struct Vec3 scale)
+// {
+//     struct Ray result;
+
+//     result.point = test(ray.point, translate, scale);
+//     result.vector = test(ray.vector, translate, scale);
+
+//     return result;
+// }
+
+struct VecH vech_invtranspose(struct VecH vector, struct Vec3 scale)
+{
+    struct VecH result;
+
+    result.x = vector.x * (1 / scale.x);
+    result.y = vector.y * (1 / scale.y);
+    result.z = vector.z * (1 / scale.z);
+    result.homo = 0;
+
+    return result;
 }

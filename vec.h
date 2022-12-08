@@ -158,4 +158,12 @@ struct Ray ray_translate(struct Ray ray, struct Vec3 translate);
 // Multiply the vector and point of a Ray by the inverse translation matrix
 struct Ray ray_translate_i(struct Ray ray, struct Vec3 translate);
 
+struct Ray ray_ts_i(struct Ray ray, struct Vec3 translate, struct Vec3 scale);
+
+void vec3_addvec_s(struct Vec3 *vec1, struct Vec3 vec2);
+
+float pointh_distpoint(struct VecH point1, struct VecH point2);
+
+struct VecH vech_invtranspose(struct VecH vector, struct Vec3 scale);
+
 #endif

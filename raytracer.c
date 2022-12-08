@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
     float view_width = abs(data.planes[1]) + abs(data.planes[2]);
     float near = data.planes[0];
 
-    struct VecH eye = pointh_new(0.0, 0.0, 2.0);
+    struct VecH eye = pointh_new(0.0, 0.0, 0.0);
 
     FILE *out_file;
 
@@ -40,10 +40,14 @@ int main(int argc, char *argv[])
 
     printf("%sSaving image [%s]: %d x %d px\n", prefix_title, data.out_filename, image_width, image_height);
 
-    out_file = fopen(data.out_filename, "w");
+    char str[100];
+    strcpy(str, "./results/");
+    strcat(str, data.out_filename);
+
+    out_file = fopen(str, "w"); // todo take out
     if (!out_file)
     {
-        printf("%sProblem with file [%s], cannot be opened.\n", prefix_body, data.out_filename);
+        printf("%sProblem with file [%s], cannot be opened.\n", prefix_body, str);
         exit(1);
     }
 
@@ -64,10 +68,10 @@ int main(int argc, char *argv[])
             float v = -1.0 * (view_height / 2) + ((view_height / 2) * (2 * i) / image_height);
 
             struct Ray ray;
-            ray.point = pointh_new(0.0, 0.0, 0.0);
+            ray.point = eye;
             ray.vector = vech_new(u, v, -1.0 * near);
 
-            struct Vec3 pixel_color = ray_color(ray, data.spheres, data.numSpheres);
+            struct Vec3 pixel_color = ray_color(ray, data.spheres, data.numSpheres, data.lights, data.numLights, data.ambient, data.background_color);
             fprintf(out_file, " %d %d %d\n", color_transform(pixel_color.x, 255), color_transform(pixel_color.y, 255), color_transform(pixel_color.z, 255));
         }
         fprintf(out_file, "\n");

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <ctype.h>
 
 #include "vec.h"
 #include "header.h"
@@ -16,24 +17,6 @@ const char *light_key = "LIGHT";
 const char *background_key = "BACK";
 const char *ambient_key = "AMBIENT";
 const char *output_key = "OUTPUT";
-
-// Helper Functions
-void druck(char *string)
-{
-    char *prefix_title = ":RT:--    ";
-    printf("%s%s\n", prefix_title, string);
-}
-
-char *strdup(const char *str)
-{
-    int n = strlen(str) + 1;
-    char *dup = malloc(n);
-    if (dup)
-    {
-        strcpy(dup, str);
-    }
-    return dup;
-}
 
 // Main Functions
 struct Data processFile(char *filename)
@@ -50,12 +33,12 @@ struct Data processFile(char *filename)
     }
 
     const int len = 100;
-    char line[len];
+    char line[100];
 
     char *token;
-    const char space[2] = " ";
-    const char newline[2] = "\n";
+    const char delim[10] = " \t\n\r\v\f";
 
+    char *dataTemp[20];
     struct Data data;
 
     int numSpheres = 0;
@@ -66,76 +49,140 @@ struct Data processFile(char *filename)
     {
         key_found = 0;
 
-        token = strtok(line, space);
+        token = strtok(line, delim);
+
+        if (token == NULL || is_empty(token))
+        {
+            key_found = 1;
+        }
 
         for (i = 0; i < 5; i++)
         {
             if (!key_found && !strcmp(token, plane_key[i]))
             {
-                data.planes[i] = atof(strtok(NULL, newline));
+                token = strtok(NULL, delim);
+                int matches = 0;
+                while (token != NULL)
+                {
+                    if (!is_empty(token))
+                    {
+                        data.planes[i] = atof(token);
+                        matches++;
+                    }
+                    token = strtok(NULL, delim);
+                }
                 key_found = 1;
             }
         }
         if (!key_found && !strcmp(token, res_key))
         {
-            data.res[0] = atoi(strtok(NULL, space));
-            data.res[1] = atoi(strtok(NULL, space));
+            token = strtok(NULL, delim);
+            int matches = 0;
+            while (token != NULL)
+            {
+                if (!is_empty(token))
+                {
+                    data.res[matches] = atoi(token);
+                    matches++;
+                }
+                token = strtok(NULL, delim);
+            }
             key_found = 1;
         }
         else if (!key_found && !strcmp(token, sphere_key))
         {
-            token = strtok(NULL, space);
-            strcpy(data.spheres[numSpheres].name, strdup(token));
-            data.spheres[numSpheres].position.x = atof(strtok(NULL, space));
-            data.spheres[numSpheres].position.y = atof(strtok(NULL, space));
-            data.spheres[numSpheres].position.z = atof(strtok(NULL, space));
-            data.spheres[numSpheres].scale.x = atof(strtok(NULL, space));
-            data.spheres[numSpheres].scale.y = atof(strtok(NULL, space));
-            data.spheres[numSpheres].scale.z = atof(strtok(NULL, space));
-            data.spheres[numSpheres].color.x = atof(strtok(NULL, space));
-            data.spheres[numSpheres].color.y = atof(strtok(NULL, space));
-            data.spheres[numSpheres].color.z = atof(strtok(NULL, space));
-            data.spheres[numSpheres].whatever[0] = atof(strtok(NULL, space));
-            data.spheres[numSpheres].whatever[1] = atof(strtok(NULL, space));
-            data.spheres[numSpheres].whatever[2] = atof(strtok(NULL, space));
-            data.spheres[numSpheres].whatever[3] = atof(strtok(NULL, space));
-            data.spheres[numSpheres].specular_exponent = atoi(strtok(NULL, space));
+            token = strtok(NULL, delim);
+            int matches = 0;
 
-            numSpheres++;
+            while (token != NULL)
+            {
+                if (!is_empty(token))
+                {
+                    dataTemp[matches] = token;
+                    matches++;
+                }
+                token = strtok(NULL, delim);
+            }
+            strcpy(data.spheres[numSpheres].name, strdup(dataTemp[0]));
+            data.spheres[numSpheres].position = vec3_new(atof(dataTemp[1]), atof(dataTemp[2]), atof(dataTemp[3]));
+            data.spheres[numSpheres].scale = vec3_new(atof(dataTemp[4]), atof(dataTemp[5]), atof(dataTemp[6]));
+            data.spheres[numSpheres].color = vec3_new(atof(dataTemp[7]), atof(dataTemp[8]), atof(dataTemp[9]));
+            data.spheres[numSpheres].lighting[0] = atof(dataTemp[10]);
+            data.spheres[numSpheres].lighting[1] = atof(dataTemp[11]);
+            data.spheres[numSpheres].lighting[2] = atof(dataTemp[12]);
+            data.spheres[numSpheres].lighting[3] = atof(dataTemp[13]);
+            data.spheres[numSpheres].specular_exponent = atoi(dataTemp[14]);
+
             key_found = 1;
+            numSpheres++;
         }
         else if (!key_found && !strcmp(token, light_key))
         {
-            token = strtok(NULL, space);
-            strcpy(data.lights[numLights].name, strdup(token));
-            data.lights[numLights].position[0] = atof(strtok(NULL, space));
-            data.lights[numLights].position[1] = atof(strtok(NULL, space));
-            data.lights[numLights].position[2] = atof(strtok(NULL, space));
-            data.lights[numLights].intensity[0] = atof(strtok(NULL, space));
-            data.lights[numLights].intensity[1] = atof(strtok(NULL, space));
-            data.lights[numLights].intensity[2] = atof(strtok(NULL, space));
+            token = strtok(NULL, delim);
+            int matches = 0;
+
+            while (token != NULL)
+            {
+                if (!is_empty(token))
+                {
+                    dataTemp[matches] = token;
+                    matches++;
+                }
+                token = strtok(NULL, delim);
+            }
+
+            strcpy(data.lights[numLights].name, strdup(dataTemp[0]));
+            data.lights[numLights].position = pointh_new(atof(dataTemp[1]), atof(dataTemp[2]), atof(dataTemp[3]));
+            data.lights[numLights].intensity = vec3_new(atof(dataTemp[4]), atof(dataTemp[5]), atof(dataTemp[6]));
 
             numLights++;
             key_found = 1;
         }
         else if (!key_found && !strcmp(token, background_key))
         {
-            data.background_color[0] = atof(strtok(NULL, space));
-            data.background_color[1] = atof(strtok(NULL, space));
-            data.background_color[2] = atof(strtok(NULL, space));
+            token = strtok(NULL, delim);
+            int matches = 0;
+
+            while (token != NULL)
+            {
+                if (!is_empty(token))
+                {
+                    dataTemp[matches] = token;
+                    matches++;
+                }
+                token = strtok(NULL, delim);
+            }
+            data.background_color = vec3_new(atof(dataTemp[0]), atof(dataTemp[1]), atof(dataTemp[2]));
             key_found = 1;
         }
         else if (!key_found && !strcmp(token, ambient_key))
         {
-            data.ambient[0] = atof(strtok(NULL, space));
-            data.ambient[1] = atof(strtok(NULL, space));
-            data.ambient[2] = atof(strtok(NULL, space));
+            token = strtok(NULL, delim);
+            int matches = 0;
+
+            while (token != NULL)
+            {
+                if (!is_empty(token))
+                {
+                    dataTemp[matches] = token;
+                    matches++;
+                }
+                token = strtok(NULL, delim);
+            }
+            data.ambient = vec3_new(atof(dataTemp[0]), atof(dataTemp[1]), atof(dataTemp[2]));
             key_found = 1;
         }
         else if (!key_found && !strcmp(token, output_key))
         {
-            token = strtok(NULL, newline);
-            data.out_filename = strdup(token);
+            token = strtok(NULL, delim);
+            while (token != NULL)
+            {
+                if (!is_empty(token))
+                {
+                    data.out_filename = strdup(token);
+                }
+                token = strtok(NULL, delim);
+            }
             key_found = 1;
         }
     }
@@ -148,14 +195,14 @@ struct Data processFile(char *filename)
     printf("%sResolution:   -%d- -%d-\n", prefix_body, data.res[0], data.res[1]);
     for (i = 0; i < numSpheres; i++)
     {
-        printf("%sSphere:       -%s- -%s- -%s- -%s- -%.1f- -%.1f- -%.1f- -%.1f- -%i-\n", prefix_body, data.spheres[i].name, vec3_tostring(data.spheres[i].position), vec3_tostring(data.spheres[i].scale), vec3_tostring(data.spheres[i].color), data.spheres[i].whatever[0], data.spheres[i].whatever[1], data.spheres[i].whatever[2], data.spheres[i].whatever[3], data.spheres[i].specular_exponent);
+        printf("%sSphere:       -%s- -%s- -%s- -%s- -%.1f- -%.1f- -%.1f- -%.1f- -%i-\n", prefix_body, data.spheres[i].name, vec3_tostring(data.spheres[i].position), vec3_tostring(data.spheres[i].scale), vec3_tostring(data.spheres[i].color), data.spheres[i].lighting[0], data.spheres[i].lighting[1], data.spheres[i].lighting[2], data.spheres[i].lighting[3], data.spheres[i].specular_exponent);
     }
     for (i = 0; i < numLights; i++)
     {
-        printf("%sLight:        -%s- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f- -%.1f-\n", prefix_body, data.lights[i].name, data.lights[i].position[0], data.lights[i].position[1], data.lights[i].position[2], data.lights[i].intensity[0], data.lights[i].intensity[1], data.lights[i].intensity[2]);
+        printf("%sLight:        -%s- -%s- -%s-\n", prefix_body, data.lights[i].name, vech_tostring(data.lights[i].position), vec3_tostring(data.lights[i].intensity));
     }
-    printf("%sBackground:   -%.1f- -%.1f- -%.1f-\n", prefix_body, data.background_color[0], data.background_color[1], data.background_color[2]);
-    printf("%sAmbient:      -%.1f- -%.1f- -%.1f-\n", prefix_body, data.ambient[0], data.ambient[1], data.ambient[2]);
+    printf("%sBackground:   -%.2f- -%.2f- -%.2f-\n", prefix_body, data.background_color.x, data.background_color.y, data.background_color.z);
+    printf("%sAmbient:      -%.2f- -%.2f- -%.2f-\n", prefix_body, data.ambient.x, data.ambient.y, data.ambient.z);
     printf("%sOutput File:  -%s-\n", prefix_body, data.out_filename);
 
     fclose(file);
@@ -163,75 +210,15 @@ struct Data processFile(char *filename)
     return data;
 }
 
-// void generate_background(int width, int height, int r, int g, int b)
-// {
-//     printf("%sGenerating Background Color: [%d,%d,%d]\n", prefix_title, r, g, b);
+struct Ray transform_ray(struct Ray ray, struct Sphere sphere)
+{
+    struct Vec3 translate = sphere.position;
+    struct Vec3 scale = sphere.scale;
 
-//     float scale = 128.0 / 200.0;
-//     int k = 0;
-//     for (int i = 0; i < 200; i++)
-//     {
-//         for (int j = 0; j < 200; j++)
-//         {
-//             pixels[k] = r;
-//             pixels[k + 1] = g;
-//             pixels[k + 2] = b;
-//             k = k + 3;
-//         }
-//     }
+    return ray_ts_i(ray, translate, scale);
+}
 
-//     printf("%sDone generating background\n", prefix_title);
-// }
-
-// int save_image(int image_width, int image_height, float view_width, float view_height, float near_plane, char *filename)
-// {
-//     FILE *out_file;
-
-//     int i, j;
-
-//     printf("%sSaving image [%s]: %d x %d px\n", prefix_title, filename, image_width, image_height);
-
-//     out_file = fopen(filename, "w");
-//     if (!out_file)
-//     {
-//         printf("%sProblem with file [%s], cannot be opened.\n", prefix_body, filename);
-//         exit(1);
-//     }
-
-//     fprintf(out_file, "P3\n");
-//     fprintf(out_file, "%i %i\n", image_width, image_height);
-//     fprintf(out_file, "255\n");
-
-//     printf("%sRows generated: ", prefix_body);
-//     printf("%3i %c", 0, 37);
-
-//     for (i = image_height - 1; i >= 0; --i)
-//     {
-//         for (j = 0; j < image_width; ++j)
-//         {
-//             float u = -1.0 * (view_width / 2) + ((view_width / 2) * (2 * j) / image_width);
-//             float v = -1.0 * (view_height / 2) + ((view_height / 2) * (2 * i) / image_height);
-//             struct Ray eye;
-//             eye.point = pointh_new(0.0, 0.0, 0.0);
-//             eye.vector = vech_new(u, v, -1.0);
-
-//             struct Vec3 pixel_color = ray_color(eye);
-//             fprintf(out_file, " %d %d %d\n", color_transform(pixel_color.x, 255), color_transform(pixel_color.y, 255), color_transform(pixel_color.z, 255));
-//         }
-//         fprintf(out_file, "\n");
-
-//         // Completion Percentage Generation (stdout)
-//         printf("\b\b\b\b\b");
-//         printf("%3i %c", ((i + 1) / image_height * 100), 37);
-//         fflush(stdout);
-//     }
-//     fclose(out_file);
-
-//     printf("\n");
-//     printf("%sImage Saved [%s]:\n", prefix_title, filename);
-// }
-
-float sphere_intersection_v(struct Ray ray, int verbose)
+float intersection_distance(struct Ray ray, int verbose)
 {
     struct VecH v = ray.vector;
     struct VecH P = ray.point;
@@ -247,41 +234,130 @@ float sphere_intersection_v(struct Ray ray, int verbose)
         printf("C: %.2f \n", C);
         printf("dis: %.2f \n", dis);
     }
-    return dis;
-}
-
-struct Vec3 ray_color(struct Ray ray, struct Sphere *spheres, int numSpheres)
-{
-    int i;
-    for (i = 0; i < numSpheres; i++)
+    if (dis >= 0)
     {
-        struct Vec3 translate = spheres[i].position;
-        struct Vec3 scale = spheres[i].scale;
+        float x = -1 * (B / A);
+        float y = sqrt(dis) / A;
+        float t1 = x - y;
+        float t2 = x + y;
 
-        struct Ray rayT = ray_translate_i(ray, translate);
-        struct Ray rayS = ray_scale_i(rayT, scale);
-
-        float t = sphere_intersection_v(rayS, 0);
-
-        if (t >= 0.0)
+        if (t1 <= t2 && t1 >= 0.0)
         {
-            return spheres[i].color;
+            return t1;
+        }
+        if (t2 <= t1 && t2 >= 0.0)
+        {
+            return t2;
         }
     }
-
-    struct Vec3 white = vec3_new(1.0, 1.0, 1.0);
-
-    return white;
+    return -1.0;
 }
 
-// printf("t value: %.2f\n", t);
-//  struct VecH n = pointh_subpoint(ray_at(ray, t), pointh_new(0.0, 0.0, -1.0));
-//  return vec3_multscalar(vec3_addscalar(vec3_new(n.x, n.y, n.z), 1), 0.5);
+int nearest_intersection(struct Ray ray, struct Sphere *spheres, int numSpheres)
+{
+    struct Ray rayTemp;
 
-// struct Vec3 blue = vec3_new(0.5, 0.7, 1.0);
-// struct Vec3 purple = vec3_new(0.5, 0.0, 0.5);
-// struct Vec3 green = vec3_new(0.0, 1.0, 0.0);
-// struct VecH unit = vech_unit(ray.vector);
-// float t = 0.5 * (unit.y + 1.0);
-// printf("t value: %.2f\n", t);
-// return vec3_addvec(vec3_multscalar(white, (1.0 - t)), vec3_multscalar(blue, t));
+    float currDistance;
+    float minDistance = INFINITY;
+    int closestObj = -1;
+
+    int p;
+    for (p = 0; p < numSpheres; p++)
+    {
+        rayTemp = transform_ray(ray, spheres[p]);
+        currDistance = intersection_distance(rayTemp, 0);
+
+        if (currDistance >= 0.0 && currDistance < minDistance)
+        {
+            minDistance = currDistance;
+            closestObj = p;
+        }
+    }
+    return closestObj;
+}
+
+struct Vec3 ray_color(struct Ray ray, struct Sphere *spheres, int numSpheres, struct Light *lights, int numLights, struct Vec3 ambient, struct Vec3 background_color)
+{
+    int i = nearest_intersection(ray, spheres, numSpheres);
+
+    if (i >= 0)
+    {
+        struct Ray rayT = transform_ray(ray, spheres[i]);
+
+        float t = intersection_distance(rayT, 0);
+
+        struct VecH intersection = ray_at(ray, t);
+        struct VecH intersectionT = ray_at(rayT, t);
+        struct VecH intersectionShifted = ray_at(ray, t + 0.0001);
+
+        struct VecH n = vech_unit(vech_invtranspose(intersectionT, spheres[i].scale));
+
+        // Color
+        struct Vec3 localColor = vec3_new(spheres[i].color.x, spheres[i].color.y, spheres[i].color.z);
+        struct Vec3 localIllum = vec3_new(0.0, 0.0, 0.0);
+
+        // Ambient
+        vec3_addvec_s(&localIllum, vec3_new(ambient.x * spheres[i].lighting[0], ambient.y * spheres[i].lighting[0], ambient.z * spheres[i].lighting[0]));
+
+        int k;
+        for (k = 0; k < numLights; k++)
+        {
+            struct VecH L = vech_unit(vech_subvec(lights[k].position, intersectionShifted));
+
+            struct Ray shadowRay;
+            shadowRay.point = intersectionShifted;
+            shadowRay.vector = L;
+
+            int j = nearest_intersection(shadowRay, spheres, numSpheres);
+            int inShadow = 0;
+
+            if (j >= 0)
+            {
+                struct Sphere closestObj = spheres[j];
+
+                struct Ray shadowRayT = transform_ray(shadowRay, closestObj);
+                float t2 = intersection_distance(shadowRayT, 0);
+
+                float lightDistance = pointh_distpoint(lights[k].position, intersection);
+
+                if (lightDistance > t2)
+                {
+                    inShadow = 1;
+                }
+            }
+
+            // Local Illumination
+            if (!inShadow)
+            {
+                float ndL = vech_dot(n, L);
+
+                float diffuseS = ndL * spheres[i].lighting[1];
+                struct Vec3 diffuse = vec3_multscalar(lights[k].intensity, diffuseS);
+                vec3_addvec_s(&localIllum, diffuse);
+
+                // Specular
+                struct VecH R = vech_subvec(vech_multscalar(n, 2.0 * ndL), L);
+                struct Vec3 specular = vec3_multscalar(lights[k].intensity, pow(vech_dot(R, ray.vector), spheres[i].specular_exponent));
+                vec3_addvec_s(&localIllum, vec3_new(specular.x * spheres[i].lighting[2], specular.y * spheres[i].lighting[2], specular.z * spheres[i].lighting[2]));
+            }
+        }
+
+        // Illumination * Object Color
+        struct Vec3 color = vec3_new(localColor.x * localIllum.x, localColor.y * localIllum.y, localColor.z * localIllum.z);
+
+        return color;
+    }
+    return background_color;
+}
+
+// Helper Functions
+int is_empty(char *s)
+{
+    while (*s != '\0')
+    {
+        if (!isspace(*s))
+            return 0;
+        s++;
+    }
+    return 1;
+}

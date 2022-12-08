@@ -10,15 +10,15 @@ struct Sphere
     struct Vec3 position;
     struct Vec3 scale;
     struct Vec3 color;
-    float whatever[4];
+    float lighting[4];
     int specular_exponent;
 };
 
 struct Light
 {
     char name[20 + 1];
-    float position[3];
-    float intensity[3];
+    struct VecH position;
+    struct Vec3 intensity;
 };
 
 struct Data
@@ -29,8 +29,8 @@ struct Data
     struct Light lights[10];
     int numSpheres;
     int numLights;
-    float background_color[3];
-    float ambient[3];
+    struct Vec3 background_color;
+    struct Vec3 ambient;
     char *out_filename;
 };
 
@@ -40,9 +40,8 @@ float sphere_intersection(struct VecH center, float radius, struct Ray ray);
 
 float sphere_intersection_v(struct Ray ray, int verbose);
 
-struct Vec3 ray_color(struct Ray ray, struct Sphere *spheres, int numSpheres);
+struct Vec3 ray_color(struct Ray ray, struct Sphere *spheres, int numSpheres, struct Light *lights, int numLights, struct Vec3 ambient, struct Vec3 background_color);
 
-// void generate_background(int *pixels, int width, int height, int r, int g, int b);
+int is_empty(char *s);
 
-// int save_image(int image_width, int image_height, float view_width, float view_height, float near_plane, char *filename);
 #endif
