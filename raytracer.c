@@ -40,14 +40,10 @@ int main(int argc, char *argv[])
 
     printf("%sSaving image [%s]: %d x %d px\n", prefix_title, data.out_filename, image_width, image_height);
 
-    char str[100];
-    strcpy(str, "./results/");
-    strcat(str, data.out_filename);
-
-    out_file = fopen(str, "w"); // todo take out
+    out_file = fopen(data.out_filename, "w");
     if (!out_file)
     {
-        printf("%sProblem with file [%s], cannot be opened.\n", prefix_body, str);
+        printf("%sProblem with file [%s], cannot be opened.\n", prefix_body, data.out_filename);
         exit(1);
     }
 
@@ -71,7 +67,7 @@ int main(int argc, char *argv[])
             ray.point = eye;
             ray.vector = vech_new(u, v, -1.0 * near);
 
-            struct Vec3 pixel_color = ray_color(ray, data.spheres, data.numSpheres, data.lights, data.numLights, data.ambient, data.background_color);
+            struct Vec3 pixel_color = ray_color(ray, data.spheres, data.numSpheres, data.lights, data.numLights, data.ambient, data.background_color, 0);
             fprintf(out_file, " %d %d %d\n", color_transform(pixel_color.x, 255), color_transform(pixel_color.y, 255), color_transform(pixel_color.z, 255));
         }
         fprintf(out_file, "\n");

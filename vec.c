@@ -449,28 +449,6 @@ struct Ray ray_ts_i(struct Ray ray, struct Vec3 translate, struct Vec3 scale)
     return ray_scale_i(ray_translate_i(ray, translate), scale);
 }
 
-// struct VecH test(struct VecH vector, struct Vec3 translate, struct Vec3 scale)
-// {
-//     struct VecH result;
-
-//     result.x = ((vector.homo * -1 * translate.x / scale.x) + (vector.x * 1 / scale.x));
-//     result.y = ((vector.homo * -1 * translate.y / scale.y) + (vector.y * 1 / scale.y));
-//     result.z = ((vector.homo * -1 * translate.z / scale.z) + (vector.z * 1 / scale.z));
-//     result.homo = vector.homo;
-
-//     return result;
-// }
-
-// struct Ray ray_ts_i(struct Ray ray, struct Vec3 translate, struct Vec3 scale)
-// {
-//     struct Ray result;
-
-//     result.point = test(ray.point, translate, scale);
-//     result.vector = test(ray.vector, translate, scale);
-
-//     return result;
-// }
-
 struct VecH vech_invtranspose(struct VecH vector, struct Vec3 scale)
 {
     struct VecH result;

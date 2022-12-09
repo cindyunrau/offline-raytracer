@@ -191,19 +191,19 @@ struct Data processFile(char *filename)
     data.numLights = numLights;
 
     printf("%sVariables processed from file: \n", prefix_title);
-    printf("%sPlanes:       -%.1f- -%.1f- -%.1f- -%.1f- -%.1f-\n", prefix_body, data.planes[0], data.planes[1], data.planes[2], data.planes[3], data.planes[4]);
-    printf("%sResolution:   -%d- -%d-\n", prefix_body, data.res[0], data.res[1]);
+    printf("%sPlanes:       N: %.1f   L: %.1f   R: %.1f   T: %.1f   B: %.1f\n", prefix_body, data.planes[0], data.planes[1], data.planes[2], data.planes[3], data.planes[4]);
+    printf("%sResolution:   W: %d   H: %d\n", prefix_body, data.res[0], data.res[1]);
     for (i = 0; i < numSpheres; i++)
     {
-        printf("%sSphere:       -%s- -%s- -%s- -%s- -%.1f- -%.1f- -%.1f- -%.1f- -%i-\n", prefix_body, data.spheres[i].name, vec3_tostring(data.spheres[i].position), vec3_tostring(data.spheres[i].scale), vec3_tostring(data.spheres[i].color), data.spheres[i].lighting[0], data.spheres[i].lighting[1], data.spheres[i].lighting[2], data.spheres[i].lighting[3], data.spheres[i].specular_exponent);
+        printf("%sSphere:       Name: %s   Position: %s   Scale: %s   Color: %s   Lighting Coeffecients: %.1f %.1f %.1f %.1f %i\n", prefix_body, data.spheres[i].name, vec3_tostring(data.spheres[i].position), vec3_tostring(data.spheres[i].scale), vec3_tostring(data.spheres[i].color), data.spheres[i].lighting[0], data.spheres[i].lighting[1], data.spheres[i].lighting[2], data.spheres[i].lighting[3], data.spheres[i].specular_exponent);
     }
     for (i = 0; i < numLights; i++)
     {
-        printf("%sLight:        -%s- -%s- -%s-\n", prefix_body, data.lights[i].name, vech_tostring(data.lights[i].position), vec3_tostring(data.lights[i].intensity));
+        printf("%sLight:        Name: %s   Position: %s   Color: %s \n", prefix_body, data.lights[i].name, vech_tostring(data.lights[i].position), vec3_tostring(data.lights[i].intensity));
     }
-    printf("%sBackground:   -%.2f- -%.2f- -%.2f-\n", prefix_body, data.background_color.x, data.background_color.y, data.background_color.z);
-    printf("%sAmbient:      -%.2f- -%.2f- -%.2f-\n", prefix_body, data.ambient.x, data.ambient.y, data.ambient.z);
-    printf("%sOutput File:  -%s-\n", prefix_body, data.out_filename);
+    printf("%sBackground:    Color: %s \n", prefix_body, vec3_tostring(data.background_color));
+    printf("%sAmbient:      Intensity: %s \n", prefix_body, vec3_tostring(data.ambient));
+    printf("%sOutput File:  %s\n", prefix_body, data.out_filename);
 
     fclose(file);
 
@@ -218,7 +218,7 @@ struct Ray transform_ray(struct Ray ray, struct Sphere sphere)
     return ray_ts_i(ray, translate, scale);
 }
 
-float intersection_distance(struct Ray ray, int verbose)
+float intersection_distance(struct Ray ray, int fromEye)
 {
     struct VecH v = ray.vector;
     struct VecH P = ray.point;
@@ -227,13 +227,6 @@ float intersection_distance(struct Ray ray, int verbose)
     float C = vech_dot(P, P) - 1;
     float dis = (B * B) - (A * C);
 
-    if (verbose == 1)
-    {
-        printf("A: %.2f \n", A);
-        printf("B: %.2f \n", B);
-        printf("C: %.2f \n", C);
-        printf("dis: %.2f \n", dis);
-    }
     if (dis >= 0)
     {
         float x = -1 * (B / A);
@@ -241,13 +234,41 @@ float intersection_distance(struct Ray ray, int verbose)
         float t1 = x - y;
         float t2 = x + y;
 
-        if (t1 <= t2 && t1 >= 0.0)
+        if (fromEye == 1)
         {
-            return t1;
+            if (t1 <= t2 && t1 >= 0.0)
+            {
+                if (t1 > 1.0)
+                {
+                    return t1;
+                }
+                if (t2 > 1.0)
+                {
+                    return -2.0;
+                }
+            }
+            if (t2 <= t1 && t2 >= 0.0)
+            {
+                if (t2 > 1.0)
+                {
+                    return t2;
+                }
+                if (t1 > 1.0)
+                {
+                    return -2.0;
+                }
+            }
         }
-        if (t2 <= t1 && t2 >= 0.0)
+        else
         {
-            return t2;
+            if (t1 <= t2 && t1 >= 0.0)
+            {
+                return t1;
+            }
+            if (t2 <= t1 && t2 >= 0.0)
+            {
+                return t2;
+            }
         }
     }
     return -1.0;
@@ -276,28 +297,38 @@ int nearest_intersection(struct Ray ray, struct Sphere *spheres, int numSpheres)
     return closestObj;
 }
 
-struct Vec3 ray_color(struct Ray ray, struct Sphere *spheres, int numSpheres, struct Light *lights, int numLights, struct Vec3 ambient, struct Vec3 background_color)
+struct Vec3 ray_color(struct Ray ray, struct Sphere *spheres, int numSpheres, struct Light *lights, int numLights, struct Vec3 ambient, struct Vec3 background_color, int depth)
 {
-    int i = nearest_intersection(ray, spheres, numSpheres);
 
+    int fromEye = 0;
+    if (depth == 0)
+    {
+        fromEye = 1;
+    }
+
+    int i = nearest_intersection(ray, spheres, numSpheres);
     if (i >= 0)
     {
+        // Local Illumination
+        struct Vec3 localIllum = vec3_new(0.0, 0.0, 0.0);
+
+        // Ambient
+        vec3_addvec_s(&localIllum, vec3_new(ambient.x * spheres[i].lighting[0] * spheres[i].color.x, ambient.y * spheres[i].lighting[0] * spheres[i].color.y, ambient.z * spheres[i].lighting[0] * spheres[i].color.z));
+
         struct Ray rayT = transform_ray(ray, spheres[i]);
 
-        float t = intersection_distance(rayT, 0);
+        float t = intersection_distance(rayT, fromEye);
+
+        if (t == -2.0)
+        {
+            return localIllum;
+        }
 
         struct VecH intersection = ray_at(ray, t);
         struct VecH intersectionT = ray_at(rayT, t);
         struct VecH intersectionShifted = ray_at(ray, t + 0.0001);
 
         struct VecH n = vech_unit(vech_invtranspose(intersectionT, spheres[i].scale));
-
-        // Color
-        struct Vec3 localColor = vec3_new(spheres[i].color.x, spheres[i].color.y, spheres[i].color.z);
-        struct Vec3 localIllum = vec3_new(0.0, 0.0, 0.0);
-
-        // Ambient
-        vec3_addvec_s(&localIllum, vec3_new(ambient.x * spheres[i].lighting[0], ambient.y * spheres[i].lighting[0], ambient.z * spheres[i].lighting[0]));
 
         int k;
         for (k = 0; k < numLights; k++)
@@ -315,8 +346,7 @@ struct Vec3 ray_color(struct Ray ray, struct Sphere *spheres, int numSpheres, st
             {
                 struct Sphere closestObj = spheres[j];
 
-                struct Ray shadowRayT = transform_ray(shadowRay, closestObj);
-                float t2 = intersection_distance(shadowRayT, 0);
+                float t2 = intersection_distance(shadowRay, 0);
 
                 float lightDistance = pointh_distpoint(lights[k].position, intersection);
 
@@ -330,22 +360,23 @@ struct Vec3 ray_color(struct Ray ray, struct Sphere *spheres, int numSpheres, st
             if (!inShadow)
             {
                 float ndL = vech_dot(n, L);
+                if (ndL < 0.0)
+                {
+                    ndL = vech_dot(vech_multscalar(n, -1), L);
+                }
 
-                float diffuseS = ndL * spheres[i].lighting[1];
-                struct Vec3 diffuse = vec3_multscalar(lights[k].intensity, diffuseS);
-                vec3_addvec_s(&localIllum, diffuse);
+                // Diffuse
+                struct Vec3 diffuse = vec3_multscalar(lights[k].intensity, ndL * spheres[i].lighting[1]);
+                vec3_addvec_s(&localIllum, vec3_new(diffuse.x * spheres[i].color.x, diffuse.y * spheres[i].color.y, diffuse.z * spheres[i].color.z));
 
                 // Specular
-                struct VecH R = vech_subvec(vech_multscalar(n, 2.0 * ndL), L);
-                struct Vec3 specular = vec3_multscalar(lights[k].intensity, pow(vech_dot(R, ray.vector), spheres[i].specular_exponent));
-                vec3_addvec_s(&localIllum, vec3_new(specular.x * spheres[i].lighting[2], specular.y * spheres[i].lighting[2], specular.z * spheres[i].lighting[2]));
+                struct VecH R = vech_unit(vech_subvec(vech_multscalar(n, 2.0 * ndL), L));
+                struct VecH V = vech_unit(vech_subvec(ray.point, intersectionShifted));
+                struct Vec3 specular = vec3_multscalar(lights[k].intensity, pow(vech_dot(R, V), spheres[i].specular_exponent) * spheres[i].lighting[2]);
+                vec3_addvec_s(&localIllum, specular);
             }
         }
-
-        // Illumination * Object Color
-        struct Vec3 color = vec3_new(localColor.x * localIllum.x, localColor.y * localIllum.y, localColor.z * localIllum.z);
-
-        return color;
+        return localIllum;
     }
     return background_color;
 }

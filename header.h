@@ -36,11 +36,7 @@ struct Data
 
 struct Data processFile(char *filename);
 
-float sphere_intersection(struct VecH center, float radius, struct Ray ray);
-
-float sphere_intersection_v(struct Ray ray, int verbose);
-
-struct Vec3 ray_color(struct Ray ray, struct Sphere *spheres, int numSpheres, struct Light *lights, int numLights, struct Vec3 ambient, struct Vec3 background_color);
+struct Vec3 ray_color(struct Ray ray, struct Sphere *spheres, int numSpheres, struct Light *lights, int numLights, struct Vec3 ambient, struct Vec3 background_color, int depth);
 
 int is_empty(char *s);
 
