@@ -55,10 +55,15 @@ Graphics software used to create highly realistic images by simulating the way l
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-![Example Generated Image][product-screenshot]
+Sample Generated Image:  
+<p align="center">
+    <img src="images/sample.png" alt="Example Image">
+</p>
 
 Generates .ppm file based on a .txt input file which contains the locations and colours of various spheres and lights. 
-
+<br />
+<br />
+<br />
 Input file should have the following format:
 
     NEAR [near plane]  
@@ -97,9 +102,35 @@ To run:
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-![Example Generated Image with Reflection][example-reflection]  
+Object Intersection Example:  
+<p align="center">
+    <img src="images/intersection.png" alt="Intersection Example Image">
+</p>
 
-![Example Generated Image with Specular Lighting][example-specular]
+Shadow Example:  
+<p align="center">
+    <img src="images/shadow.png" alt="Shadow Example Image">
+</p>
+
+Diffuse Lighting Example:  
+<p align="center">
+    <img src="images/diffuse.png" alt="Diffuse Example Image">
+</p>
+
+Reflection Example:  
+<p align="center">
+    <img src="images/reflection.png" alt="Reflection Example Image">
+</p>
+
+Illumination Example:  
+<p align="center">
+    <img src="images/illumination.png" alt="Illumination Example Image">
+</p>
+
+Specular Lighting Example:  
+<p align="center">
+    <img src="images/specular.png" alt="Specular Example Image">
+</p>
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
